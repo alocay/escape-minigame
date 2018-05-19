@@ -1,0 +1,186 @@
+body {
+	background: #222 url('../assets/dark-triangles.png') repeat; /* binding-dark.png courtesy of Tia Newbury. Found @ http://subtlepatterns.com/ */
+    font-family: 'Poly', sans-serif;
+    color: #eee;
+}
+
+h1, h2, h3, h6 {
+    text-align: center;
+    font-weight: 200;
+    font-family: 'Poly', sans-serif;
+    color: #eee;
+}
+
+h1.header-title {
+	margin-top: 150px;
+    font-size: 35pt;
+}
+
+h1.header-title div {
+	border: 2px solid rgba(255, 255, 255, 0.75);
+	background-color: rgba(0, 0, 0, 0.5);
+	width: 30%;
+	margin: 0 auto;
+	padding: 15px;
+}
+
+h1.project-title {
+    margin: 30px 0 10px 0;
+}
+
+a {
+    color: #f03c69;
+}
+
+a:hover {
+    color: #eee;
+}
+
+a:link,
+a:visited,
+a:hover,
+a:active {
+    text-decoration: none;
+}
+
+ul.project-list {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+ 
+ul.project-list li {
+  font: 200 15px/2.0;
+  width: 200px;
+  margin-bottom: 10px;
+}
+
+div.header {
+    margin-top: 50px;
+}
+
+div.content {
+    border-radius: 5px;
+    padding: 20px 0;
+    margin: auto;
+    background-color: #666;
+    width: 50%;
+}
+
+.aboutme {
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 50px;
+}
+
+.aboutme img {
+    background: none repeat rgba(0, 0, 0, 0.2);
+    padding: 7px;
+    border-radius: 5px;
+}
+
+div.projects {
+    padding-left: 8%;
+}
+
+div.footer {
+    position: absolute;
+    width: 100%;
+    padding: 0;
+    bottom: 0;
+    margin: 0;
+	background: #030303 none;
+}
+
+div.footer h6 {
+	color: #eee;
+}
+
+#shared-footer {
+    width: 100%;
+    height: 30px;
+}
+
+.game-over {
+	background-color: #fff;
+	position: absolute;
+	width: 25%;
+    height: 80px;
+	padding: 15px;
+	margin: auto;
+	top: 0;
+    bottom: 0;
+    right: 0;
+	left: 0;
+	border: 1px solid #000;
+    z-index: 2;
+}
+
+.game-over-title {
+	font-size: 12pt;
+	margin-bottom: 10px;
+	margin: auto;
+	text-align: center;
+	font-weight: bold;
+}
+
+#game-over-retry,
+#game-over-win {
+	font-size: 10pt;
+	margin: auto;
+	text-align: center;
+}
+
+#game-over-retry a:hover,
+#game-over-win a:hover {
+	color: #ff0000;
+}
+
+.hidden {
+	display: none;
+}
+
+.project-group-header {
+    font-size: 12pt;
+    border-bottom: 1px solid #ccc;
+    width: 160px;
+}
+
+.project-group {
+    text-align: center;
+    padding: 20px 0;
+}
+
+#container {
+    text-align: center;
+    height: 600px;
+}
+
+#canvas {
+    width: 800px;
+    height: 600px;
+    background-color: #ddd;
+}
+
+.abs {
+    position: absolute;
+    z-index: 1;
+}
+
+#info {
+    background-color: rgba(0, 0, 0, 0.35);
+    width: 800px;
+    min-width: 800px;
+    max-width: 800px;
+}
+
+.controls {
+    margin: 0;
+}
+
+#nav-menu {
+    text-align: right;
+}
+
+.nav-item {
+    margin: 0 15px;
+}

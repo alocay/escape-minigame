@@ -1,0 +1,351 @@
+<html>
+	<head>
+        <link rel="stylesheet" type="text/css" href="css/kube.min.css">
+        <link rel="stylesheet" type="text/css" href="css/styles.css">
+		<script type="text/javascript" src="js/jquery-1.11.1.min.js"></script>
+		<script type="text/javascript" src="js/paper-full.js"></script>
+        <script type="text/javascript" src="js/extends.js"></script>
+        <script type="text/javascript" src="js/levelKey.js"></script>
+        <script type="text/javascript" src="js/door.js"></script>
+        <script type="text/javascript" src="js/battery.js"></script>
+        <script type="text/javascript" src="js/flashlight.js"></script>
+        <script type="text/javascript" src="js/tile.js"></script>
+        <script type="text/javascript" src="js/environment.js"></script>
+        <script type="text/javascript" src="js/sprite.js"></script>
+        <script type="text/javascript" src="js/waypoint.js"></script>		
+        <script type="text/javascript" src="js/mob.js"></script>
+        <script type="text/javascript" src="js/enemy.js"></script>
+        <script type="text/javascript" src="js/eliteEnemy.js"></script>		
+        <script type="text/javascript" src="js/player.js"></script>
+		<script type="text/javascript">
+            paper.install(window);
+            $(document).ready(function () {
+                var canvas = document.getElementById('canvas');
+				var environment = null;
+                var shiftDown = false;
+                var ctrlDown = false;
+				var mouseDown = false;
+				var moveLight = false;
+				var movementAmount = 10;
+				var lockView = false;
+				var currentLevel = 1;
+				var running = false;
+                var timerLabel = null;
+                var flashlightLabel = null;
+                var batteryLifeLabel = null;
+                var hasKeyLabel = null;
+				var gameOverGroup = null;
+                var fpsLabel = null;
+                var lastUpdate = 0;
+                var lastCount = 0;
+				
+				window.DEBUG_GAME = false;
+				window.DEBUG_GAME_EXTRA = false;
+				
+                paper.setup(canvas);
+				
+                var tool = new Tool();
+				
+				setupLevel(currentLevel);
+				createGameInfoLabels();
+				
+				function createGameOverGroup() {
+					var point = new Point(view.size.width / 4, view.size.height / 4);
+					var gameOverLabelBackground = new Shape.Rectangle(point, new Size(200, 75));
+					
+					var gameOverLabel = new PointText(view.size.width / 4, view.size.height / 4);
+					gameOverLabel.fillColor = 'black';
+					gameOverLabel.visible = false;
+				}
+				
+				function createGameInfoLabels() {
+					timerLabel = new PointText(view.size.width - 80, 20);
+					timerLabel.fillColor = 'white';
+					
+					flashlightLabel = new PointText(view.size.width - 80, 35);
+					flashlightLabel.fillColor = 'white';
+					
+					batteryLifeLabel = new PointText(view.size.width - 80, 50);
+					batteryLifeLabel.fillColor = 'white';
+					
+					hasKeyLabel = new PointText(view.size.width - 80, 65);
+					hasKeyLabel.fillColor = 'white';
+					
+					fpsLabel = new PointText(view.size.width - 80, 80);
+					fpsLabel.fillColor = 'white';
+				}
+				
+				function drawArrow(start, end, d) {
+					var b = d.normalize(3);
+					var p1 = new Path([start, end]);
+					p1.strokeColor = 'black';
+					
+					var p2 = new Path([end.add(b.rotate(135)), end, end.add(b.rotate(-135))]);
+					p2.strokeColor = 'black';
+					
+					var vi = new Group([p1, p2]);
+					return vi;
+				}
+                
+				function removeArrow(arrow) {
+					if (!arrow) {
+						return;
+					}
+					
+					var c = arrow.removeChildren();
+					for (var j = 0; j < c.length; j++) {
+						c[j].remove();
+					}
+					
+					arrow.remove();
+				};
+				
+                tool.onKeyDown = function(event) {
+                    
+                    if (event.key == 'shift') {
+                        shiftDown = true;
+                    }
+                    
+                    if (event.key == 'control') {
+                        ctrlDown = true;
+                    }
+                }
+
+                tool.onKeyUp = function(event) {
+                    if (event.key == 'shift') {
+                        shiftDown = false;
+						lockView = !lockView;
+                    }
+					
+					if (event.key == 'control') {
+						environment.player.cycleThroughFov();
+						ctrlDown = false;
+					}
+                }
+                
+                tool.onMouseUp = function(evt) {
+                    switch(evt.event.which) {
+                        case 1:
+                            environment.player.targetLocation = evt.point;
+                            break;
+                        case 3:
+                            if (evt.event.stopPropagation) {
+                                evt.event.stopPropagation();
+                            }
+
+                            evt.event.cancelBubble = true;
+                            
+                            environment.player.toggleFlashlight();
+                            break;
+                    }
+                };
+				
+				tool.onMouseMove = function(evt) {
+					if (!lockView) {
+						environment.player.setVisionVector(evt.point);
+					}
+				};
+				
+				tool.onMouseDrag = function(evt) {
+				};
+				
+                // Draw the view now:
+                view.onFrame = function(evt) {
+					if (running) {
+                        environment.update();
+                        
+                        updatePlayerInfo();
+                        updateClock(evt.time);
+                        
+                        if (window.DEBUG_GAME) {
+                            updateFpsLabel((evt.time | 0), evt.count);
+                        }
+                        
+                        if (environment.gameOver) {
+                            running = false;
+                            displayGameOver();
+                        }
+					}
+                }
+				
+				$("#game-over-retry a").click(function () {
+					$('#retry').addClass('hidden');
+					environment.cleanup();
+					setupLevel(currentLevel);
+				});
+				
+				$("#game-over-win a").click(function () {
+					$('#win').addClass('hidden');
+					environment.cleanup();
+					setupLevel(currentLevel);
+				});
+				
+                function updateFpsLabel (time, count) {
+                    if (time > lastUpdate) {
+                        fpsLabel.content = "FPS: " + (count - lastCount);
+                        lastCount = count;
+                        lastUpdate = time;
+                    }
+                    
+                    fpsLabel.bringToFront();
+                }
+                
+                function updatePlayerInfo() {
+                    flashlightLabel.content = "Flashlight: " + (environment.player.isFlashlightOn() ? "On" : "Off");
+                    flashlightLabel.bringToFront();
+                    batteryLifeLabel.content = "Bat: " + environment.player.getFlashlightBatteryLife();
+                    batteryLifeLabel.bringToFront();
+                    hasKeyLabel.content = "Key: " + (environment.player.HasKey() ? "Yes" : "No");
+                    hasKeyLabel.bringToFront();
+                }
+                
+                function updateClock(time) {
+                    var d = new Date(0, 0, 0, 0, 0, time, 0);
+                    timerLabel.content = doubleDigitFormat(d.getHours()) + ":" + doubleDigitFormat(d.getMinutes()) + ":" + doubleDigitFormat(d.getSeconds());
+                    timerLabel.bringToFront();
+                }
+                
+                function doubleDigitFormat (value) {
+                    return ("0" + Number(value)).slice(-2);
+                }
+                
+				function setupLevel(level) {
+					if (level == 1) {
+						environment = new Environment(view.size);
+						var player = new Player(new Point(350, 200), 10);
+                        environment.player = player;
+						
+                        createEnemiesAndWaypoints();
+                        
+                        //var tile = new Tile(new Point(250, 550), 'assets/splat.mp3');
+                        //environment.addTile(tile)
+                        
+						var block = new Rectangle(new Point (200, 0), new Size(100, view.size.height - 200));
+						var block2 = new Rectangle(new Point(400, 0), new Size(100, view.size.height - 200));
+						var block3 = new Rectangle(new Point(400, view.size.height - 200), new Size(300, 50));
+						
+						var blockPath1 = new Path.Rectangle(block);
+						var blockPath2 = new Path.Rectangle(block2);
+						var blockPath3 = new Path.Rectangle(block3);
+						
+						environment.addObstacle(blockPath1);
+						environment.addObstacle(blockPath2);
+						environment.addObstacle(blockPath3);
+						environment.addObstacle(new Path.Circle(new Point(350, 400), 15));
+                        
+                        var battery1 = new Battery(new Point(754, 43));
+                        var battery2 = new Battery(new Point(12, 582));
+                        
+                        environment.addBattery(battery1);
+                        environment.addBattery(battery2);
+					}
+					
+					running = true;
+				}
+                
+                function createEnemiesAndWaypoints() {
+                    var enemy = new Enemy(new Point(100,100), null, null, null, null, 45, 175);
+                    enemy.vector = new Point(50,50);
+                    
+                    var enemy2 = new Enemy(new Point(300, 500), null, null, null, null, 30, 150);
+                    var eliteEnemy = new EliteEnemy(new Point(700, 50));
+                    
+                    var wp1 = new Waypoint(new Point(70, 80), 0.2);
+                    var wp2 = new Waypoint(new Point(152, 300), 0.3);
+                    var wp3 = new Waypoint(new Point(76, 558), 0.5);
+                    
+                    wp1.addNeighbor(wp2);
+                    wp2.addNeighbor(wp1);
+                    wp2.addNeighbor(wp3);
+                    wp3.addNeighbor(wp2);
+                    
+                    enemy.setWaypoint(wp1);
+                    
+                    var wp4 = new Waypoint(new Point(203, 539), 0.5);
+                    var wp5 = new Waypoint(new Point(692, 546), 0.5);
+                    
+                    wp4.addNeighbor(wp5);
+                    wp5.addNeighbor(wp4);
+                    
+                    enemy2.setWaypoint(wp4);
+                    
+                    var wp6 = new Waypoint(new Point(529, 31), 0.3);
+                    var wp7 = new Waypoint(new Point(529, 375), 0.5);
+                    var wp8 = new Waypoint(new Point(775, 375), 0.2);
+                    var wp9 = new Waypoint(new Point(775, 31), 0.7);
+                    
+                    wp6.addNeighbor(wp9);
+                    wp6.addNeighbor(wp7);
+                    wp7.addNeighbor(wp6);
+                    wp7.addNeighbor(wp8);
+                    wp8.addNeighbor(wp9);
+                    wp8.addNeighbor(wp7);
+                    wp9.addNeighbor(wp6);
+                    wp9.addNeighbor(wp8);
+                    
+                    eliteEnemy.setWaypoint(wp6);
+                    enemy.useWaypoints = true;
+                    enemy2.useWaypoints = true;
+                    eliteEnemy.useWaypoints = true;
+                    
+                    environment.addEnemy(enemy);
+                    environment.addEnemy(enemy2);
+                    environment.addEnemy(eliteEnemy);
+                }
+				
+				function displayGameOver() {
+					if (environment.escaped) {
+						$('#win').removeClass('hidden');
+					}
+					else {
+						$('#retry').removeClass('hidden');
+					}
+				}
+				
+                paper.view.draw();
+            });
+		</script>
+        <title>Escape! - Armando Locay</title>
+	</head>
+	<body>
+        <div class="row auto">
+            <div class="col">
+                <h1 class="project-title">Escape!</h1>
+                <h6>A small experiment with paper.js</h6>
+            </div>
+        </div>
+        <div class="row auto">
+            <div class="col text-center">
+                
+            </div>
+        </div>
+        <div class="row align-center">
+            <div class="col col-9">
+                <div id="container">
+                    <canvas id="canvas" class="" oncontextmenu="return false;"></canvas>
+                    <div id="retry" class="game-over hidden">
+                        <div id="game-over-title">Game Over!</div>
+                        <div id="game-over-retry">
+                            <a href="#">Retry</a>
+                        </div>
+                    </div>
+					<div id="win" class="game-over hidden">
+                        <div class="game-over-title">You Escaped!</div>
+                        <div id="game-over-win">
+                            <a href="#">Play Again</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+         <div class="row align-center">
+            <div id="info" class="col col-9">
+                <div class="controls">Find the key and exit through the door. Watch out for guards!</div>
+                <div class="controls">Keep and eye on your battery.</div>
+                <div class="controls">click - move to location</div>
+                <div class="controls">ctrl - change flashlist range/field of vision</div>
+                <a href="http://github.com/alocay/escape-minigame">GitHub</a></li>
+            </div>
+        </div>
+	<body>
+</html>
